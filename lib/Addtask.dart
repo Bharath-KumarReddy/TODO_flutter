@@ -1,106 +1,247 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:todo_app/Home.dart';
 
-class Addtask extends StatefulWidget {
-  const Addtask({Key? key}) : super(key: key);
+class AppTodo extends StatefulWidget {
+  const AppTodo({Key? key}) : super(key: key);
 
   @override
-  State<Addtask> createState() => _AddtaskState();
+  State<AppTodo> createState() => _AppTodoState();
 }
 
-class _AddtaskState extends State<Addtask> {
-  late TextEditingController titleController;
-  late TextEditingController descriptionController;
+class _AppTodoState extends State<AppTodo> {
+  String type = 'food';
+  String SelectedCategory1 = 'important';
+  TextEditingController titleController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    titleController = TextEditingController();
-    descriptionController = TextEditingController();
-  }
-  
-  @override
-  void dispose() {
-    titleController.dispose();
-    descriptionController.dispose();
-    super.dispose();
-  }
+  void saveTodoToFirebase() async {
+    try {
+      final User? user = FirebaseAuth.instance.currentUser;
 
-  void _addTask() {
-    final title = titleController.text;
-    final description = descriptionController.text;
+      if (user != null) {
+        Map<String, dynamic> todoData = {
+          'title': titleController.text,
+          'description': descriptionController.text,
+          'category': SelectedCategory1,
+          'type': type,
+          'createdAt': Timestamp.now(),
+          'userId': user.uid,
+        };
 
-    final CollectionReference tasks =
-        FirebaseFirestore.instance.collection('tasks');
+        CollectionReference todos =
+            FirebaseFirestore.instance.collection('todos');
 
-    tasks.add({
-      'title': title,
-      'description': description,
-    }).then((value) {
-      Get.defaultDialog(
-        title: 'Task added',
-        middleText: 'Task Added successfully',
-        textConfirm: 'OK',
-        onConfirm: () {
-          Get.back();
-          titleController.clear();
-          descriptionController.clear();
-        },
+        await todos.add(todoData);
+
+        titleController.clear();
+        descriptionController.clear();
+
+        Get.snackbar(
+          "Added successfully",
+          "You have added",
+          backgroundColor: Colors.green,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: Duration(seconds: 3),
+        );
+
+        Get.to(() => HomePage());
+      }
+    } catch (e) {
+      print('Error: $e');
+      Get.snackbar(
+        "Error",
+        e.toString(),
+        backgroundColor: Colors.red,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: Duration(seconds: 3),
       );
-      print('Task added to Firestore');
-    }).catchError((error) {
-      print('Error adding task to Firestore: $error');
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "New Task",
-          style: TextStyle(color: Colors.orange, fontSize: 30),
-        ),
-        backgroundColor: Colors.blue,
+        title: Text('Create Todo'),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ListView(
+      body: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+        ),
+        padding: EdgeInsets.all(16.0),
+        height: double.infinity,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: "Enter Title",
-                  border: OutlineInputBorder(),
+              Card(
+                elevation: 4,
+                child: Container(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Title',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      TextField(
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          hintText: 'Enter Title',
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 16.0),
-              TextField(
-                controller: descriptionController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: "Enter Description",
-                  border: OutlineInputBorder(),
+              SizedBox(height: 16),
+              Card(
+                elevation: 4,
+                child: Container(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Task Type',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      Row(
+                        children: [
+                          ChoiceChip(
+                            label: Text('Important'),
+                            selected: SelectedCategory1 == 'important',
+                            onSelected: (selected) {
+                              setState(() {
+                                SelectedCategory1 = 'important';
+                              });
+                            },
+                          ),
+                          SizedBox(width: 8),
+                          ChoiceChip(
+                            label: Text('Planner'),
+                            selected: SelectedCategory1 == 'planner',
+                            onSelected: (selected) {
+                              setState(() {
+                                SelectedCategory1 = 'planner';
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: _addTask,
-                child: Text("Add Task"),
+              SizedBox(height: 16),
+              Card(
+                elevation: 4,
+                child: Container(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Description',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      TextFormField(
+                        controller: descriptionController,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText: 'Enter Description',
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
+              SizedBox(height: 16),
+              Card(
+                elevation: 4,
+                child: Container(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Category',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          FilterChip(
+                            label: Text('Food'),
+                            selected: type == 'food',
+                            onSelected: (selected) {
+                              setState(() {
+                                type = 'food';
+                              });
+                            },
+                          ),
+                          FilterChip(
+                            label: Text('Workout'),
+                            selected: type == 'workout',
+                            onSelected: (selected) {
+                              setState(() {
+                                type = 'workout';
+                              });
+                            },
+                          ),
+                          FilterChip(
+                            label: Text('Run'),
+                            selected: type == 'run',
+                            onSelected: (selected) {
+                              setState(() {
+                                type = 'run';
+                              });
+                            },
+                          ),
+                          FilterChip(
+                            label: Text('Design'),
+                            selected: type == 'design',
+                            onSelected: (selected) {
+                              setState(() {
+                                type = 'design';
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 50,
+              ),
+              Center(
+                child: FloatingActionButton(
+                  backgroundColor: Colors.blue,
+                  onPressed: saveTodoToFirebase,
+                  child: Icon(
+                    Icons.add,
+                    color: Colors.white,
+                  ),
+                ),
+              )
             ],
           ),
         ),
       ),
     );
   }
-}
-
-void main() {
-  runApp(MaterialApp(
-    home: Addtask(),
-    theme: ThemeData(primaryColor: Colors.deepPurple),
-  ));
 }
