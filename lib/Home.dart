@@ -1,47 +1,64 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
-import 'package:usingfirebase/Addtask.dart';
-import 'package:usingfirebase/Delete.dart';
-import 'package:usingfirebase/Edit.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:todo_app/AddTodo.dart';
+import 'package:todo_app/Delete.dart';
+import 'package:todo_app/Edit.dart';
+import 'package:todo_app/signIn.dart';
 
-class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
+class HomePage extends StatelessWidget {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  @override
-  State<Home> createState() => _HomeState();
-}
+  Future<void> _signOut() async {
+    try {
+      await _auth.signOut();
 
-class _HomeState extends State<Home> {
+      Get.offAll(() => Signin());
+    } catch (e) {
+      print('Sign-out error: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "Todo",
-          style: TextStyle(
-            fontSize: 30,
-            color: Colors.orange,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () {
+              _signOut();
+            },
           ),
-        ),
+        ],
       ),
-      body: _buildTaskList(),
       floatingActionButton: FloatingActionButton(
-        child: Icon(
-          Icons.add,
-          color: Colors.white,
-        ),
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: Colors.blue,
         onPressed: () {
-          Get.to(() => const Addtask());
+          Get.to(() => AppTodo());
         },
+        child: Icon(Icons.add, color: Colors.white),
       ),
+      body: _buildTodoList(),
     );
   }
 
-  Widget _buildTaskList() {
+  Widget _buildTodoList() {
+    final User? user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return Center(
+        child: Text('User not logged in.'),
+      );
+    }
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('tasks').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('todos')
+          .where('userId', isEqualTo: user.uid)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
@@ -50,57 +67,117 @@ class _HomeState extends State<Home> {
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
+          return const Center(
             child: CircularProgressIndicator(),
           );
         }
 
-        final taskDocs = snapshot.data!.docs;
+        final List<Widget> todoWidgets = [];
+        final todos = snapshot.data?.docs;
 
-        return ListView.builder(
-          itemCount: taskDocs.length,
-          itemBuilder: (context, index) {
-            final taskData = taskDocs[index].data() as Map<String, dynamic>;
-            final title = taskData['title'];
-            final description = taskData['description'];
+        for (var todo in todos!) {
+          final title = todo['title'];
+          final description = todo['description'];
+          final taskType = todo['type'];
+          final category = todo['category'];
 
-            return Card(
-              elevation: 3,
-              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ListTile(
-                title: Text(
-                  'Title: $title',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle: Text(
-                  'Description: $description',
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+          todoWidgets.add(
+            Card(
+              elevation: 4,
+              margin: EdgeInsets.all(19.0),
+              child: Padding(
+                padding: const EdgeInsets.all(19.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.edit),
-                      onPressed: () {
-                        Get.to(() => Edit(
-                           taskId: taskDocs[index].id, 
-                           initialTitle: title,
-                          initialDescription: description,
-                        ));
-                      },
+                    Text(
+                      'Title: $title',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () {
-                        Get.to(() => Delete(taskId: taskDocs[index].id,));
-                      },
-                    ),
+                    Text('Description: $description'),
+                    Text('Task Type: $taskType'),
+                    Text('Category: $category'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Get.to(() => Edit(
+                                  taskId: todo.id,
+                                  initialTitle: todo[
+                                      'title'], 
+                                  initialDescription: todo[
+                                      'description'], 
+                                  initialTaskType: todo[
+                                      'type'], 
+                                  initialCategory: todo[
+                                      'category'],
+                                ));
+                          },
+                          icon: Icon(Icons.edit),
+                          label: const Text(
+                            "Edit",
+                            style: TextStyle(color: Colors.orange),
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            // showDialog(
+                            //   context: context,
+                            //   builder: (BuildContext context) {
+                            //     return AlertDialog(
+                            //       backgroundColor: Colors.black,
+                            //       title: const Text(
+                            //         'Delete Task',
+                            //         style: TextStyle(color: Colors.white),
+                            //       ),
+                            //       content: const Text(
+                            //         'Are you sure you want to delete this task?',
+                            //         style: TextStyle(color: Colors.white),
+                            //       ),
+                            //       actions: <Widget>[
+                            //         ElevatedButton(
+                            //           onPressed: () {
+                            //             Get.back();
+                            //           },
+                            //           child: Text('Cancel'),
+                            //         ),
+                            //         ElevatedButton(
+                            //           onPressed: () {
+                            //             Get.to(() => Delete(taskId: todo.id));
+                            //           },
+                            //           child: Text('Delete'),
+                            //         ),
+                            //       ],
+                            //     );
+                            //   },
+                            // );
+
+                            Get.to(() => Delete(taskId: todo.id));
+                          },
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          label: const Text(
+                            "Delete",
+                            style: TextStyle(color: Colors.pink),
+                          ),
+                        )
+                      ],
+                    )
                   ],
                 ),
               ),
-            );
-          },
+            ),
+          );
+        }
+
+        return ListView(
+          children: todoWidgets,
         );
       },
     );
