@@ -28,7 +28,7 @@ class _SignInPageState extends State<SignInPage> {
     super.initState();
     errorMessageTimer = Timer(const Duration(seconds: 5), () {
       setState(() {
-        errorMessage = null; // Set errorMessage to null to hide it
+        errorMessage = null; 
       });
     });
   }
