@@ -1,136 +1,171 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:usingfirebase/Login.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:todo_app/signIn.dart';
 
+class Signup extends StatefulWidget {
+  const Signup({Key? key});
 
-
-class SignUpPage extends StatefulWidget {
   @override
-  _SignUpPageState createState() => _SignUpPageState();
+  State<Signup> createState() => _SignupState();
 }
 
-class _SignUpPageState extends State<SignUpPage> {
-  final TextEditingController Controller = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-
- Future<void> _registerUser() async {
- 
-  final email = emailController.text.trim();
-  final password = passwordController.text;
-
-  
-  if ( email.isEmpty || password.isEmpty) {
-   
-    Get.defaultDialog(
-      title: 'Error',
-      content: Text('All fields are required.'),
-      textCancel: 'OK',
-    );
-    return; 
-  }
-
-  try {
-    final authResult = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-
-    await FirebaseFirestore.instance.collection('users').doc(authResult.user?.uid).set({
-      
-      'email': email,
-    });
-
-    Get.to(() => SignInPage());
-  } catch (error) {
-    print('Registration Error: $error');
-    
-  }
-}
-
+class _SignupState extends State<Signup> {
+  firebase_auth.FirebaseAuth firebaseauth = firebase_auth.FirebaseAuth.instance;
+  final TextEditingController _emailcontroller = TextEditingController();
+  final TextEditingController _passwordcontroller = TextEditingController();
 
   @override
   void dispose() {
-    Controller.dispose();
-    emailController.dispose();
-    passwordController.dispose();
+    _emailcontroller.dispose();
+    _passwordcontroller.dispose();
     super.dispose();
+  }
+
+  Future<void> _signUp() async {
+    try {
+      final String email = _emailcontroller.text;
+      final String password = _passwordcontroller.text;
+
+      await firebaseauth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      Get.snackbar(
+        "Signed Up Success",
+        "You have successfully signed up.",
+        backgroundColor: Colors.green,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: Duration(seconds: 3),
+      );
+
+      Get.to(() => const Signin());
+    } catch (e) {
+      Get.snackbar(
+        "Sign Up Error",
+        e.toString(),
+        backgroundColor: Colors.red,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: Duration(seconds: 3),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Sign Up' , style : TextStyle(color : Colors.red)),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.lightBlue, Colors.white],
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        child: Container(
+          height: Get.size.height,
+          width: Get.size.width,
+          color: Colors.black,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              // TextField(
-              //   controller: Controller,
-              //   decoration: InputDecoration(
-              //     labelText: '',
-              //     icon: Icon(Icons.person),
-              //   ),
-              // ),
-              SizedBox(height: 16.0),
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  icon: Icon(Icons.email),
+            children: [
+              const Text(
+                "Sign Up",
+                style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 25,
+                    fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: Get.size.width - 60,
+                height: 60,
+                child: Card(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset('assets/google.svg',
+                          height: 25, width: 10),
+                      SizedBox(width: 10),
+                      const Text("Continue with Google"),
+                    ],
+                  ),
                 ),
               ),
-              SizedBox(height: 16.0),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  icon: Icon(Icons.lock),
+              const SizedBox(height: 20),
+              Container(
+                width: Get.size.width - 60,
+                height: 60,
+                child: Card(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset('assets/phone.svg',
+                          height: 25, width: 10),
+                      SizedBox(width: 10),
+                      Text("Continue with Phone"),
+                    ],
+                  ),
                 ),
               ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: _registerUser,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Icon(Icons.person_add),
-                    SizedBox(width: 8.0),
-                    Text('Sign Up'),
-                  ],
-                ),
+              SizedBox(
+                height: 20,
               ),
-              SizedBox(height: 16.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text('Already have an account?'),
-                  TextButton(
-                    onPressed: () {
-                      // Navigate to the sign-in page
-                      Navigator.pop(context);
-                    },
-                    child: Text(
-                      'Sign In',
-                      style: TextStyle(color: Colors.deepPurple),
+              const Text(
+                "Or",
+                style: TextStyle(color: Colors.pink, fontSize: 20),
+              ),
+              SizedBox(height: 20),
+              Container(
+                width: Get.size.width - 60,
+                height: 60,
+                child: Card(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Center(
+                      child: TextField(
+                        controller: _emailcontroller,
+                        decoration: InputDecoration(
+                          hintText: 'Email',
+                          border: InputBorder.none,
+                        ),
+                      ),
                     ),
                   ),
-                ],
+                ),
+              ),
+              SizedBox(height: 20),
+              Container(
+                width: Get.size.width - 60,
+                height: 60,
+                child: Card(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Center(
+                      child: TextField(
+                        controller: _passwordcontroller,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          hintText: 'Password',
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _signUp,
+                child: Text("Sign Up"),
+              ),
+              SizedBox(height: 20),
+              GestureDetector(
+                onTap: () {
+                  Get.to(() => Signin());
+                },
+                child: const Text(
+                  "Already have an account? Login ",
+                  style: TextStyle(
+                      color: Colors.white,
+                      decoration: TextDecoration.underline,
+                      fontSize: 18),
+                ),
               ),
             ],
           ),
