@@ -9,7 +9,7 @@ class Delete extends StatelessWidget {
 
   void _deleteTask() {
     final CollectionReference tasks =
-        FirebaseFirestore.instance.collection('tasks');
+        FirebaseFirestore.instance.collection('todos');
 
     tasks.doc(taskId).delete().then((value) {
       Get.back();
